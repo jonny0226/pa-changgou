@@ -1,0 +1,81 @@
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]': # 匹配所有请求
+              allowedOrigins: "*" #跨域处理 允许所有的域
+              allowedMethods: # 支持的方法
+                - GET
+                - POST
+                - PUT
+                - DELETE
+
+#      #比如用户请求cloud.itheima.com的时候，可以将请求路由给http://localhost:18081服务处理
+#      routes:
+#                  - id: changgou_goods_route
+#                    uri: http://localhost:18081
+#                    predicates:
+#                    - Host=cloud.itheima.com**
+#      routes:
+#                  - id: changgou_goods_route
+#                    uri: http://localhost:18081
+#                    predicates:
+#                    - Path=/**
+#                    #用户请求路径是/api/brand,而真实路径是/brand，这时候我们需要去掉/api才是真实路径，此时可以使用SttripPrefix功能来实现路径的过滤操作
+#                    #下面这个1表示去掉路径中的第一个路径
+#                    filters:
+#                    - StripPrefix=1
+      routes:
+                  - id: changgou_goods_route
+                    #uri: http://localhost:18081
+                    uri: lb://goods
+                    predicates:
+                    #- Host=cloud.itheima.com**
+                      #什么开始的路径才经过网关
+                    - Path=/api/album/**,/api/brand/**,/api/cache/**,/api/categoryBrand/**,/api/category/**,/api/para/**,/api/pref/**,/api/sku/**,/api/spec/**,/api/spu/**,/api/stockBack/**,/api/template/**
+                    filters:
+                    #- PrefixPath=/brand
+                    - StripPrefix=1
+                    - name: RequestRateLimiter #请求数限流 名字不能随便写 ，使用默认的facatory
+                      args:
+                        key-resolver: "#{@ipKeyResolver}"
+                        #是您希望允许用户每秒执行多少请求，而不会丢弃任何请求。这是令牌桶填充的速率
+                        redis-rate-limiter.replenishRate: 1
+                        #指令牌桶的容量，允许在一秒钟内完成的最大请求数,将此值设置为零将阻止所有请求。
+                        redis-rate-limiter.burstCapacity: 1
+                  #用户微服务
+                  - id: changgou_user_route
+                    uri: lb://user
+                    predicates:
+                    - Path=/api/user/**,/api/address/**,/api/areas/**,/api/cities/**,/api/provinces/**
+                    filters:
+                    - StripPrefix=1 # 这个是减掉/api/user/**,/api/address/**,/api/areas/**,/api/cities/**,/api/provinces/**前面的api的
+                  #订单微服务
+                  - id: changgou_order_route
+                    uri: lb://order
+                    predicates:
+                    - Path=/api/cart/**,/api/categoryReport/**,/api/orderConfig/**,/api/order/**,/api/orderItem/**,/api/orderLog/**,/api/preferential/**,/api/returnCause/**,/api/returnOrder/**,/api/returnOrderItem/**
+                    filters:
+                    - StripPrefix=1
+  application:
+    name: gateway-web
+  #Redis配置
+  redis:
+    host: 192.168.211.132
+    port: 6379
+server:
+  port: 8001
+eureka:
+  client:
+    service-url:
+      defaultZone: http://127.0.0.1:7001/eureka
+  instance:
+    prefer-ip-address: true
+management:
+  endpoint:
+    gateway:
+      enabled: true
+    web:
+      exposure:
+        include: true
