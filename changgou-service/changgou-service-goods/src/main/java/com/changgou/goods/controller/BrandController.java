@@ -36,7 +36,9 @@ public class BrandController {
     public Result<PageInfo> findPage(@RequestBody(required = false)  Brand brand, @PathVariable  int page, @PathVariable  int size){
         //调用BrandService实现分页条件查询Brand
         PageInfo<Brand> pageInfo = brandService.findPage(brand, page, size);
+        System.out.println("测试使用");
         return new Result(true, StatusCode.OK,"查询成功",pageInfo);
+
     }
 
     /***
